@@ -1,8 +1,8 @@
 # Quic-D
 
+[![dub][dub-badge]][dub]
 [![CI][gh-actions-status]][gh-actions]
 [![codecov][codecov-status]][codecov]
-[![dub][dub-badge]][dub]
 
 `quic-d` is an implementation of the [QUIC][quic] protocol in [Dlang][dlang].
 
