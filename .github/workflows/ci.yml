@@ -23,6 +23,9 @@ jobs:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
 
+    env:
+      CODECOV_DIR: 'build/code-coverage'
+
     steps:
     - name: Prepare D compiler and Dub package manager
       uses: dlang-community/setup-dlang@v1
@@ -34,5 +37,12 @@ jobs:
 
     - name: 'Build and test'
       run: |
+        mkdir -p build/code-coverage
         dub build
-        dub test
+        dub test --build=unittest-cov -- --DRT-covopt="dstpath:$CODECOV_DIR"
+
+    - name: 'Upload coverage to Codecov'
+      if: matrix.dc == 'dmd-latest'
+      uses: codecov/codecov-action@v3
+      with:
+        directory: ${{ env.CODECOV_DIR }}
