@@ -1,4 +1,4 @@
-# Quic-D
+# QUIC-D
 
 [![dub][dub-badge]][dub]
 [![CI][gh-actions-status]][gh-actions]
@@ -12,8 +12,8 @@
 [dub]: https://code.dlang.org/packages/quic-d
 [dub-badge]: https://img.shields.io/dub/v/quic-d
 
-[codecov]: https://codecov.io/github/dlang-community/quic
-[codecov-status]: https://codecov.io/github/dlang-community/quic/branch/main/graph/badge.svg?token=U7ZXz8M8gj
+[codecov]: https://codecov.io/github/dlang-community/quic-d
+[codecov-status]: https://codecov.io/github/dlang-community/quic-d/branch/main/graph/badge.svg?token=U7ZXz8M8gj
 
-[gh-actions]: https://github.com/dlang-community/quic/actions
-[gh-actions-status]: https://github.com/dlang-community/quic/actions/workflows/ci.yml/badge.svg
+[gh-actions]: https://github.com/dlang-community/quic-d/actions
+[gh-actions-status]: https://github.com/dlang-community/quic-d/actions/workflows/ci.yml/badge.svg
