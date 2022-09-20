@@ -1,0 +1,7 @@
+name "quic-d"
+description "Implementation of the QUIC protocol in Dlang"
+authors "Vlăduț Chicoș"
+copyright "Copyright © 2022, Vlăduț Chicoș"
+license "BSL-1.0"
+
+targetPath "build"
