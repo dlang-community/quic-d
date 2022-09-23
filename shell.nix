@@ -3,9 +3,13 @@ with pkgs;
   mkShell {
     buildInputs = [
       figlet
+
       dmd
       ldc
       dub
+
+      openssl_3
+      pkg-config
     ];
 
     shellHook = ''
