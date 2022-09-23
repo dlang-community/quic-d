@@ -17,26 +17,28 @@ jobs:
       matrix:
         os: [ ubuntu-latest ]
         dc:
-          - dmd-latest
-          - ldc-latest
+          - dmd
+          - ldc2
 
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
 
     env:
       CODECOV_DIR: 'build/code-coverage'
+      DC: ${{ matrix.dc }}
 
     steps:
-    - name: Prepare D compiler and Dub package manager
-      uses: dlang-community/setup-dlang@v1
-      with:
-          compiler: ${{ matrix.dc }}
-
     - name: Checkout the repo
       uses: actions/checkout@v3
 
+    - name: Install Nix package manager
+      uses: cachix/install-nix-action@v17
+
+    - name: Build Nix dev shell
+      run: nix build '.#devShell.x86_64-linux'
+
     - name: 'Build and test'
-      run: ./scripts/ci.sh
+      run: nix develop -c ./scripts/ci.sh
 
     - name: 'Upload coverage to Codecov'
       if: matrix.dc == 'dmd-latest'
