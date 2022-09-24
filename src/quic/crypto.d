@@ -17,8 +17,9 @@ struct ossl_param
 enum OSSL_PARAM_UTF8_STRING = 4;
 enum OSSL_PARAM_OCTET_STRING = 5;
 
-void handleErrors() {                                                        
-    ERR_print_errors_fp(stderr);                                                   
+void handleErrors()
+{ 
+    ERR_print_errors_fp(stderr);
     assert(false);
 }
 
@@ -57,7 +58,7 @@ unittest
     import std.digest : toHexString, LetterCase;
     ubyte[32] initial_secret;
 
-    //Numerical values taken from thee RFC 9001 Appendix A example 
+    //Numerical values taken from the RFC 9001 Appendix A example 
     auto salt = cast(ubyte[]) hexString!"38762cf7f55934b34d179ae6a4c80cadccbb7f0a";
     auto key = cast(ubyte[]) hexString!"8394c8f03e515708";
     auto digest = cast(ubyte[]) "sha256";
@@ -65,4 +66,94 @@ unittest
     hkdf_extract(salt, key, digest, initial_secret);
     assert(initial_secret.toHexString!(LetterCase.lower) ==
     "7db5df06e7a69e432496adedb00851923595221596ae2ae9fb8115c1e9ed0a44");
+}
+
+void hkdf_expand(const(EVP_MD)* md, ubyte[] buffer, ubyte[] secret,
+                                                ubyte[] label,ushort buffLen)
+{
+    EVP_PKEY_CTX* ctx;
+    ctx = EVP_PKEY_CTX_new_id(EVP_PKEY_HKDF, null);
+
+    if (EVP_PKEY_derive_init(ctx) < 1)
+        handleErrors;
+    if (EVP_PKEY_CTX_hkdf_mode(ctx, EVP_KDF_HKDF_MODE_EXPAND_ONLY) < 1)
+        handleErrors;
+    if (EVP_PKEY_CTX_set_hkdf_md(ctx, md) < 1)
+        handleErrors;
+    if (EVP_PKEY_CTX_set1_hkdf_key(ctx, secret.ptr, cast(int) secret.length)
+                                                                        < 1)
+        handleErrors;
+    if (EVP_PKEY_CTX_add1_hkdf_info(ctx, label.ptr, cast(int) label.length) < 1)
+        handleErrors;
+
+    auto bufLenParam = cast(ulong) buffLen;
+    if (EVP_PKEY_derive(ctx, buffer.ptr, &bufLenParam) < 1)
+        handleErrors;
+}
+
+/* RFC8446 7.1.  Key Schedule
+ *     Where HkdfLabel is specified as:
+ *
+ *     struct {
+ *         uint16 length = Length;
+ *         opaque label<7..255> = "tls13 " + Label;
+ *         opaque context<0..255> = Context;
+ *     } HkdfLabel;
+ */
+
+void hkdf_expand_label(const(EVP_MD)* md, ubyte[] buffer, ubyte[] secret,
+                                    ubyte[] label, ushort bufLen)
+in {
+    assert(label.length <= 250); //256 - tlsLabel.length
+}
+do {
+    ubyte[] HkdfLabel;
+    ubyte[] tlsLabel = cast(ubyte[]) "tls13 "; 
+    HkdfLabel ~= cast(ubyte) bufLen >> 8;
+    HkdfLabel ~= cast(ubyte) bufLen & 0xff;
+    HkdfLabel ~= cast(ubyte) (tlsLabel.length + label.length);
+    HkdfLabel ~= tlsLabel;
+    HkdfLabel ~= label;
+    HkdfLabel ~= '\0';
+    hkdf_expand(md, buffer, secret, HkdfLabel, bufLen);
+}
+
+unittest
+{
+    import std.conv : hexString;
+    import std.digest : toHexString, LetterCase;
+    import deimos.openssl.evp;
+    //Numerical values taken from the RFC 9001 Appendix A example 
+    auto initial_secret = cast(ubyte[]) hexString!"7db5df06e7a69e432496adedb00851923595221596ae2ae9fb8115c1e9ed0a44";
+    auto client_in_label = cast(ubyte[]) "client in";
+    
+    ubyte[32] buf;
+    hkdf_expand_label(EVP_sha256, buf, initial_secret, client_in_label, cast(ushort) 32);
+    assert(buf.toHexString!(LetterCase.lower) == "c00cf151ca5be075ed0ebfb5c80323c42d6b7db67881289af4008f1f6c357aea");
+}
+
+// https://wiki.openssl.org/index.php/EVP_Authenticated_Encryption_and_Decryption
+int encrypt_packet(ubyte[] plaintext, ubyte[] aad, ubyte[] key,
+                        ubyte[] iv, ubyte[] ciphertext, EVP_CIPHER_CTX* ctx,
+                        const(EVP_CIPHER)* aead = EVP_aes_256_gcm)
+{
+    int len, ciphertext_len;
+    //support for other AEAD ciphers to be added later
+    if (EVP_EncryptInit_ex(ctx, aead, null, null, null) < 1)
+        handleErrors;
+    if (EVP_EncryptInit_ex(ctx, null, null, key.ptr, iv.ptr) < 1)
+        handleErrors;
+    if (EVP_EncryptInit_ex(ctx, null, null, key.ptr, iv.ptr) < 1)     
+        handleErrors;
+    if (EVP_EncryptUpdate(ctx, null, &len, aad.ptr, cast(int) aad.length) < 1)
+        handleErrors;
+    if (EVP_EncryptUpdate(ctx, ciphertext.ptr, &len, plaintext.ptr,
+                                            cast(int) plaintext.length) < 1)
+        handleErrors;
+    ciphertext_len = len;
+
+    if (EVP_EncryptFinal_ex(ctx, ciphertext[len..$].ptr, &len) != 1)
+        handleErrors;
+
+    return ciphertext_len;
 }
