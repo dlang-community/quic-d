@@ -10,6 +10,8 @@ with pkgs;
 
       openssl_3
       pkg-config
+
+      curlHTTP3
     ];
 
     shellHook = ''
