@@ -5,3 +5,5 @@ copyright "Copyright © 2022, Vlăduț Chicoș"
 license "BSL-1.0"
 
 targetPath "build"
+
+dependency "openssl" version="~>3.2"
