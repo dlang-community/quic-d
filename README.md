@@ -11,8 +11,8 @@
 ### Dependencies
 
 * D compiler
-* Dub
-* OpenSSL >= 3.0.5
+* [Dub][dub-pm]
+* [OpenSSL][openssl] >= 3.0.5
 
 The dependencies above can either be installed manually (in any way you prefer)
 or automatically via Nix.
@@ -88,6 +88,8 @@ opt-in for security reasons.)
 
 [quic]: https://datatracker.ietf.org/doc/rfc9000/
 
+[openssl]: https://www.openssl.org/
+
 [nix]: https://nixos.org/
 [nix-install]: https://nixos.org/download.html
 [nix-flakes]: https://www.tweag.io/blog/2020-05-25-flakes/
@@ -98,7 +100,7 @@ opt-in for security reasons.)
 [nix-direnv]: https://github.com/nix-community/nix-direnv
 
 [dlang]: https://dlang.org/
-[dub-pm]: https://dlang.org/
+[dub-pm]: https://dub.pm/getting_started
 
 [dub]: https://code.dlang.org/packages/quic-d
 [dub-badge]: https://img.shields.io/dub/v/quic-d
