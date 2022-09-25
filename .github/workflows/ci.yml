@@ -36,10 +36,7 @@ jobs:
       uses: actions/checkout@v3
 
     - name: 'Build and test'
-      run: |
-        mkdir -p build/code-coverage
-        dub build
-        dub test --build=unittest-cov -- --DRT-covopt="dstpath:$CODECOV_DIR"
+      run: ./scripts/ci.sh
 
     - name: 'Upload coverage to Codecov'
       if: matrix.dc == 'dmd-latest'
