@@ -143,14 +143,13 @@ out (result) {
 }
 
 ubyte[] decrypt_packet(ubyte[] ciphertext, ubyte[] aad, ubyte[] key,
-                    ubyte[] iv, ubyte[] plaintext, EVP_CIPHER_CTX* cctx,
+                    ubyte[] iv, ubyte[] plaintext, EVP_CIPHER_CTX* ctx,
                     const(EVP_CIPHER)* aead = EVP_aes_256_gcm)
 out (result) {
     if (result == null)
         ERR_print_errors_fp(stderr);
 } do {
     int len, plaintext_len, ret;
-    auto ctx = EVP_CIPHER_CTX_new();
     //support for other AEAD ciphers to be added later
     if (EVP_DecryptInit_ex(ctx, aead, null, null, null) < 1)
         return null;
@@ -162,12 +161,30 @@ out (result) {
                                             cast(int) ciphertext.length) < 1)
         return null;
     plaintext_len = len;
-    ret = EVP_DecryptFinal_ex(ctx, plaintext[len..$].ptr, &len);
-    if(ret > 0)
-    {
+
+    if (EVP_DecryptFinal_ex(ctx, plaintext[len..$].ptr, &len) >= 0)
         plaintext_len += len;
-        return plaintext[0..plaintext_len];
-    }
     else
         return null;
+
+        return plaintext[0..plaintext_len];
+}
+
+unittest
+{
+    auto message = cast(ubyte[]) "some secret message";
+    auto key = cast(ubyte[]) "a key";
+    auto iv = cast(ubyte[]) "someIVsomeIV";
+    auto aad = cast(ubyte[]) "additional data";
+    ubyte[64] cipherBuffer;
+    ubyte[64] decryptedBuffer;
+    
+    import deimos.openssl.evp : EVP_CIPHER_CTX_new, EVP_CIPHER_CTX_free; 
+    auto ctx = EVP_CIPHER_CTX_new;
+    auto encryptedMessage = encrypt_packet(message, aad, key, iv, cipherBuffer,
+                                                                        ctx);
+    auto decryptedMessage = decrypt_packet(encryptedMessage, aad, key, iv,
+                                            decryptedBuffer, ctx);
+    assert(message == decryptedMessage);
+    EVP_CIPHER_CTX_free(ctx);
 }
