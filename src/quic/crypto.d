@@ -1,8 +1,8 @@
 module quic.crypto;
 
-import deimos.openssl.kdf;
-import deimos.openssl.evp;
-import deimos.openssl.err;
+import deimos.openssl.evp : EVP_aes_256_gcm, EVP_CIPHER, EVP_CIPHER_CTX, EVP_MD,
+                            EVP_sha256;
+import deimos.openssl.err : ERR_print_errors_fp;
 import core.stdc.stdio : stderr;
 
 int hkdf_extract(ubyte[] salt, ubyte[] key, ubyte[] initialSecret,
@@ -11,6 +11,17 @@ out (result) {
     if (result < 1)
         ERR_print_errors_fp(stderr);
 } do {
+    import deimos.openssl.evp : EVP_PKEY_CTX, EVP_PKEY_CTX_new_id,
+                                EVP_PKEY_derive, EVP_PKEY_derive_init,
+                                EVP_PKEY_HKDF;
+                                
+
+    import deimos.openssl.kdf : EVP_PKEY_CTX_hkdf_mode,
+                                EVP_PKEY_CTX_set_hkdf_md,
+                                EVP_PKEY_CTX_set1_hkdf_salt,
+                                EVP_PKEY_CTX_set1_hkdf_key,
+                                EVP_KDF_HKDF_MODE_EXTRACT_ONLY;
+
     EVP_PKEY_CTX* ctx;
     ctx = EVP_PKEY_CTX_new_id(EVP_PKEY_HKDF, null);
 
@@ -53,6 +64,16 @@ out (result) {
     if (result < 1)
         ERR_print_errors_fp(stderr);
 } do {
+    import deimos.openssl.evp : EVP_PKEY_CTX,
+                                EVP_PKEY_derive, EVP_PKEY_derive_init,
+                                EVP_PKEY_HKDF, EVP_PKEY_CTX_new_id;
+
+    import deimos.openssl.kdf : EVP_PKEY_CTX_add1_hkdf_info,
+                                EVP_PKEY_CTX_hkdf_mode,
+                                EVP_PKEY_CTX_set_hkdf_md,
+                                EVP_PKEY_CTX_set1_hkdf_salt,
+                                EVP_PKEY_CTX_set1_hkdf_key,
+                                EVP_KDF_HKDF_MODE_EXPAND_ONLY;
     EVP_PKEY_CTX* ctx;
     ctx = EVP_PKEY_CTX_new_id(EVP_PKEY_HKDF, null);
 
@@ -122,6 +143,8 @@ out (result) {
     if (result == null)
         ERR_print_errors_fp(stderr);
 } do {
+    import deimos.openssl.evp : EVP_EncryptFinal_ex, EVP_EncryptInit_ex,
+                                EVP_EncryptUpdate;
     int len, ciphertext_len;
     //support for other AEAD ciphers to be added later
     if (EVP_EncryptInit_ex(ctx, aead, null, null, null) < 1)
@@ -149,6 +172,9 @@ out (result) {
     if (result == null)
         ERR_print_errors_fp(stderr);
 } do {
+    import deimos.openssl.evp : EVP_DecryptFinal_ex, EVP_DecryptInit_ex,
+                                EVP_DecryptUpdate;
+
     int len, plaintext_len, ret;
     //support for other AEAD ciphers to be added later
     if (EVP_DecryptInit_ex(ctx, aead, null, null, null) < 1)
