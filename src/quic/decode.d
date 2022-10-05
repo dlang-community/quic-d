@@ -28,15 +28,15 @@ unittest
     buffer ~= cast(ubyte[]) hexString!"7bbd";
     buffer ~= cast(ubyte[]) hexString!"25";
 
-    assert(decodeVarInt(val, buffer, bufferPointer) == 1);
+    assert(decodeVarInt(val, buffer, bufferIndex) == 1);
     assert(val == 151288809941952652);
 
-    assert(decodeVarInt(val, buffer, bufferPointer) == 1);
+    assert(decodeVarInt(val, buffer, bufferIndex) == 1);
     assert(val == 494878333);
 
-    assert(decodeVarInt(val, buffer, bufferPointer) == 1);
+    assert(decodeVarInt(val, buffer, bufferIndex) == 1);
     assert(val == 15293);
 
-    assert(decodeVarInt(val, buffer, bufferPointer) == 1);
+    assert(decodeVarInt(val, buffer, bufferIndex) == 1);
     assert(val == 37);
 }
