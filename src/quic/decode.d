@@ -21,7 +21,7 @@ in {
 unittest
 {
     ulong val;
-    ulong bufferPointer;
+    ulong bufferIndex;
     import std.conv : hexString;
     ubyte[] buffer = cast(ubyte[]) hexString!"c2197c5eff14e88c";
     buffer ~= cast(ubyte[]) hexString!"9d7f3e7d";
