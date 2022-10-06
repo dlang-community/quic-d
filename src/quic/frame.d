@@ -67,13 +67,14 @@ alias tlsVersion = ubyte[2];
 
 struct SupportedVersions
 {
-    tlsVersion[] tlsVersions = [0x3, 0x4];
+    //QUIC should support TLS 1.3 by default (0x03 0x04)
+    tlsVersion[] tlsVersions = [[0x3, 0x4]];
 }
 alias supportedGroup = ubyte[2];
 
 struct SupportedGroups
 {   //assigned value for the "x25519" elliptic-curve
-    supportedGroup[] groups = [0x00, 0x1d];
+    supportedGroup[] groups = [[0x00, 0x1d]];
 }
 
 struct KeyShare
