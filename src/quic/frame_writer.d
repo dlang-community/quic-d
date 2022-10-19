@@ -48,7 +48,7 @@ struct QuicFrameWriter
                 static if(is(attributes == VarIntLength))
                 {
                     encodeVarInt(wLocal, field.length);
-                    writer ~= field;
+                    wLocal ~= field;
                 }
                 
                 else static if(hasFixedLength!attributes[0])
@@ -82,7 +82,7 @@ struct QuicFrameWriter
                                         getFixedLength!frame_writer[1]);
         }
 
-        writer ~= wLocal;
+        writer ~= wLocal[];
     }
 }
 
