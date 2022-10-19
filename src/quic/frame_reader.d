@@ -1,6 +1,8 @@
 module quic.frame_reader;
 
 import quic.frame;
+import quic.packet;
+import quic.attributes;
 
 struct QuicFrameReader(FrameType)
 {
@@ -9,7 +11,7 @@ struct QuicFrameReader(FrameType)
     ubyte[] networkStream;
     ulong bufIndex;
 
-    this(ubyte[] networkStream, ref ulong bufIndex)
+    this(ubyte[] networkStream, ulong bufIndex)
     {
         this.networkStream = networkStream; 
         this.bufIndex = bufIndex;
@@ -41,7 +43,46 @@ struct QuicFrameReader(FrameType)
                 return value;
             }
 
+            else static if (is(FieldType == ubyte[]))
+            {
+                alias attributes = __traits(getAttributes, mixin(FrameType.stringof, '.', name)); 
+                static if(is(attributes == VarIntLength))
+                {
+                    VarInt len;
+                    decodeVarInt(len, networkStream, bufIndex);
+                    bufIndex += len; 
+                    return networkStream[bufIndex-len..bufIndex];
+                }
+
+                static if(hasFixedLengh!attributes[0])
+                {
+                    auto lenOfLength = getFixedLength!attributes[0];
+                    auto len = decodeBigEndianField(networkStream, bufIndex, len);
+                    bufIndex += len;
+                    return networkStream[bufIndex-len..bufIndex];
+                }
+            }
+
+            else static if(hasEstablishedLength!attributes[0])
+            {
+                    auto len = getEstablishedLength!attributes[0];
+                    bufIndex += len;
+                    return networkStream[bufIndex-len..bufIndex];
+            }
         }
+}
+
+ulong decodeBigEndianField(FieldType)(ubyte[] networkStream, ref ulong bufIndex, uint len)
+{
+    int value;
+    while(len)
+    {
+        fieldLen = (fieldLen << 8) + networkStream[bufIndex];
+        bufIndex++;
+        len--;
+    }
+    bufIndex += fieldLen;
+    return value;
 }
 
 unittest

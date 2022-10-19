@@ -21,22 +21,22 @@ in {
 unittest
 {
     ulong val;
-    ulong bufferIndex;
+    ulong bufferPointer;
     import std.conv : hexString;
     ubyte[] buffer = cast(ubyte[]) hexString!"c2197c5eff14e88c";
     buffer ~= cast(ubyte[]) hexString!"9d7f3e7d";
     buffer ~= cast(ubyte[]) hexString!"7bbd";
     buffer ~= cast(ubyte[]) hexString!"25";
 
-    assert(decodeVarInt(val, buffer, bufferIndex) == 1);
+    assert(decodeVarInt(val, buffer, bufferPointer) == 1);
     assert(val == 151288809941952652);
 
-    assert(decodeVarInt(val, buffer, bufferIndex) == 1);
+    assert(decodeVarInt(val, buffer, bufferPointer) == 1);
     assert(val == 494878333);
 
-    assert(decodeVarInt(val, buffer, bufferIndex) == 1);
+    assert(decodeVarInt(val, buffer, bufferPointer) == 1);
     assert(val == 15293);
 
-    assert(decodeVarInt(val, buffer, bufferIndex) == 1);
+    assert(decodeVarInt(val, buffer, bufferPointer) == 1);
     assert(val == 37);
 }
