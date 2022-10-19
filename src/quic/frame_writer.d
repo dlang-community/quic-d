@@ -7,17 +7,16 @@ import quic.attributes;
 import std.array : Appender;
 alias LocalWriter = Appender!(ubyte[]);
 
-struct QuicFrameWriter
+struct QuicWriter
 {
     import quic.encode : encodeVarInt;
 
-    void getFrame(Writer, Frame)(ref Writer writer, ref Frame F)
+    void getFrame(Writer, Frame)(ref Writer writer, Frame F)
     {
         LocalWriter wLocal;
-
         foreach(i, field; F.tupleof) 
         {
-            alias attributes = __traits(getAttributes, field);
+            alias attributes = __traits(getAttributes, F.tupleof[i]);
 
             static if (is(typeof(field) == VarInt))
             {
@@ -42,7 +41,7 @@ struct QuicFrameWriter
                 writeBigEndianField(wLocal, field);
             }
 
-            else static if (is(typeof(field) == ubyte[]))
+            else static if (attributes.length > 0)
             {
 
                 static if(is(attributes == VarIntLength))
@@ -51,35 +50,39 @@ struct QuicFrameWriter
                     wLocal ~= field;
                 }
                 
-                else static if(hasFixedLength!attributes[0])
+                else static if(hasFixedLength!(attributes[0]))
                 {
-                    writeBigEndianField(wLocal, field.length, attributes[1]);
+                    writeBigEndianField(wLocal, field.length,
+                                            getFixedLength!(attributes[0]));
                     wLocal ~= field;
                 }
-                else
+
+                else static if (hasEstablishedLength!(attributes[0]) &&
+                                                        attributes.length > 0)
                 {
                     wLocal ~= field;
                 }
             }
-            else static if (hasEstablishedLength!attributes[0])
+
+            else static if(is(typeof(field) == ubyte[]))
             {
                 wLocal ~= field;
             }
         }
        
         alias frameAttrs = __traits(getAttributes, F);
-        static if(isTlsFrame!frameAttrs[0])
+        static if(frameAttrs.length > 0 && isTlsFrame!(frameAttrs[0]))
         {
-            writeBigEndianField(writer, getTlsFrameType!frameAttrs[0], 1);
+            writeBigEndianField(writer, getTlsFrameType!(frameAttrs[0]), 1);
             writeBigEndianField(writer, wLocal[].length,
-                                        getFixedLength!frame_writer[1]);
+                                        getFixedLength!(frame_writer[1]));
         }
 
-        static if(isTlsExtension!frameAttrs[0])
+        static if(frameAttrs.length > 0 && isTlsExtension!(frameAttrs[0]))
         {
             writeBigEndianField(writer, getTlsExtensionType!frameAttrs[0], 2);
             writeBigEndianField(writer, wLocal[].length,
-                                        getFixedLength!frame_writer[1]);
+                                        getFixedLength!(frame_writer[1]));
         }
 
         writer ~= wLocal[];
