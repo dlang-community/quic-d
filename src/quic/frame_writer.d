@@ -5,15 +5,15 @@ import quic.packet;
 import quic.attributes;
 
 import std.array : Appender;
-alias LocalWriter = Appender!(ubyte[]);
+alias LocalAppender = Appender!(ubyte[]);
 
 struct QuicWriter
 {
     import quic.encode : encodeVarInt;
 
-    void getFrame(Writer, Frame)(ref Writer writer, Frame F)
+    void getBytes(Writer, Frame)(ref Writer writer, Frame F)
     {
-        LocalWriter wLocal;
+        LocalAppender wLocal;
         foreach(i, field; F.tupleof) 
         {
             alias attributes = __traits(getAttributes, F.tupleof[i]);
@@ -38,7 +38,7 @@ struct QuicWriter
             
             else static if(__traits(isUnsigned,typeof(field)))
             {
-                writeBigEndianField(wLocal, field);
+                writeBigEndianField!(typeof(field).sizeof)(wLocal, field);
             }
 
             else static if (attributes.length > 0)
@@ -52,8 +52,8 @@ struct QuicWriter
                 
                 else static if(hasFixedLength!(attributes[0]))
                 {
-                    writeBigEndianField(wLocal, field.length,
-                                            getFixedLength!(attributes[0]));
+                    writeBigEndianField!(getFixedLength!(attributes[0]))(wLocal,
+                                                                field.length);
                     wLocal ~= field;
                 }
 
@@ -73,29 +73,42 @@ struct QuicWriter
         alias frameAttrs = __traits(getAttributes, F);
         static if(frameAttrs.length > 0 && isTlsFrame!(frameAttrs[0]))
         {
-            writeBigEndianField(writer, getTlsFrameType!(frameAttrs[0]), 1);
-            writeBigEndianField(writer, wLocal[].length,
-                                        getFixedLength!(frame_writer[1]));
+            writeBigEndianField!(1)(writer, getTlsFrameType!(frameAttrs[0]));
+            writeBigEndianField!(getFixedLength!(frame_writer[1]))(writer, wLocal[].length);
         }
 
         static if(frameAttrs.length > 0 && isTlsExtension!(frameAttrs[0]))
         {
-            writeBigEndianField(writer, getTlsExtensionType!frameAttrs[0], 2);
-            writeBigEndianField(writer, wLocal[].length,
-                                        getFixedLength!(frame_writer[1]));
+            writeBigEndianField!(2)(writer, getTlsExtensionType!frameAttrs[0]);
+            writeBigEndianField!(getFixedLength!(frame_writer[1]))(writer, wLocal[].length);
         }
 
         writer ~= wLocal[];
     }
 }
 
-void writeBigEndianField(Writer, FieldType)(ref Writer writer,
-                            FieldType field, int fieldLen = FieldType.sizeof)
+void writeBigEndianField(uint FieldLen, Writer, FieldType)(ref Writer writer,
+                            FieldType field)
 {
-    while(fieldLen)
-    {
-        writer ~= cast(ubyte) (field & 0xff);
-        fieldLen--;
-        field = field >>> 8;
-    }
+    import std.bitmanip : nativeToBigEndian;
+    ubyte[FieldType.sizeof] bigEndianField = nativeToBigEndian(field);
+    writer ~= bigEndianField[$-FieldLen..$];
+}
+
+unittest
+{
+    import quic.packet : InitialPacket;
+    import std.conv : hexString;
+    import std.digest : toHexString, LetterCase;
+
+    QuicWriter writer;            
+    InitialPacket packet;
+    packet.headerBits = 0xc0;
+    packet.destinationConnectionID = cast(ubyte[]) hexString!"0001020304050607";
+    packet.sourceConnectionID = cast(ubyte[]) hexString!"635f636964";
+    
+    LocalAppender buffer;
+    writer.getBytes(buffer, packet);
+    assert(buffer[].toHexString!(LetterCase.lower) ==
+                                "c00000000108000102030405060705635f63696400");
 }

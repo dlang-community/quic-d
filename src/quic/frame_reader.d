@@ -57,7 +57,7 @@ struct QuicReader(FrameType)
                 static if(hasFixedLengh!(attributes[0]))
                 {
                     auto lenOfLength = getFixedLength!(attributes[0]);
-                    auto len = decodeBigEndianField(networkStream, bufIndex, len);
+                    auto len = readBigEndianField(networkStream, bufIndex, len);
                     bufIndex += len;
                     return networkStream[bufIndex-len..bufIndex];
                 }
@@ -72,17 +72,17 @@ struct QuicReader(FrameType)
         }
 }
 
-ulong decodeBigEndianField(FieldType)(ubyte[] networkStream, ref ulong bufIndex, uint len)
+ulong readBigEndianField(ubyte[] networkStream, ref ulong bufIndex, uint len)
 {
-    int value;
+    import std.bitmanip : swapEndian;
+    ulong field;
     while(len)
     {
-        fieldLen = (fieldLen << 8) + networkStream[bufIndex];
+        field = networkStream[bufIndex] + (field << 8);
+        len--; 
         bufIndex++;
-        len--;
     }
-    bufIndex += fieldLen;
-    return value;
+    return field;
 }
 
 unittest
