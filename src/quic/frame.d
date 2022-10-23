@@ -39,6 +39,11 @@ struct CryptoFrame
     @VarIntLength ubyte[] cryptoData;
 }
 
+struct HandshakeDone
+{
+    VarInt type;
+}
+
 //TLS 1.3 frames
 //Reference : RFC 8446
 

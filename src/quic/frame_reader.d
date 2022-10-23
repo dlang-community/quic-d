@@ -18,7 +18,7 @@ struct QuicReader(FrameType)
     }
 
     auto opDispatch(string name)() {
-            alias FieldType = typeof(mixin(FrameType.stringof, '.', name));
+            alias FieldType = typeof(__traits(getMember, FrameType, name));
 
             FieldType value;
 
@@ -69,6 +69,8 @@ struct QuicReader(FrameType)
                     bufIndex += len;
                     return networkStream[bufIndex-len..bufIndex];
             }
+
+            else assert(0, "Type is not supported");
         }
 }
 

@@ -68,6 +68,8 @@ struct QuicWriter
             {
                 wLocal ~= field;
             }
+
+            else assert(0, "Type is not supported");
         }
        
         alias frameAttrs = __traits(getAttributes, F);
