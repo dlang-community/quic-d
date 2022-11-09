@@ -1,7 +1,7 @@
 module quic.crypto;
 
 import deimos.openssl.evp : EVP_aes_256_gcm, EVP_CIPHER, EVP_CIPHER_CTX, EVP_MD,
-                            EVP_sha256;
+                            EVP_sha256, EVP_aes_128_ecb;
 import deimos.openssl.err : ERR_print_errors_fp;
 import core.stdc.stdio : stderr;
 
@@ -136,7 +136,7 @@ unittest
 }
 
 // https://wiki.openssl.org/index.php/EVP_Authenticated_Encryption_and_Decryption
-ubyte[] encrypt_packet(ubyte[] plaintext, ubyte[] aad, ubyte[] key,
+ubyte[] aeadEncrypt(ubyte[] plaintext, ubyte[] aad, ubyte[] key,
                         ubyte[] iv, ubyte[] ciphertext, EVP_CIPHER_CTX* ctx,
                         const(EVP_CIPHER)* aead = EVP_aes_256_gcm)
 out (result) {
@@ -165,7 +165,7 @@ out (result) {
     return ciphertext[0..ciphertext_len];
 }
 
-ubyte[] decrypt_packet(ubyte[] ciphertext, ubyte[] aad, ubyte[] key,
+ubyte[] aeadDecrypt(ubyte[] ciphertext, ubyte[] aad, ubyte[] key,
                     ubyte[] iv, ubyte[] plaintext, EVP_CIPHER_CTX* ctx,
                     const(EVP_CIPHER)* aead = EVP_aes_256_gcm)
 out (result) {
@@ -175,7 +175,7 @@ out (result) {
     import deimos.openssl.evp : EVP_DecryptFinal_ex, EVP_DecryptInit_ex,
                                 EVP_DecryptUpdate;
 
-    int len, plaintext_len, ret;
+    int len, plaintext_len;
     //support for other AEAD ciphers to be added later
     if (EVP_DecryptInit_ex(ctx, aead, null, null, null) < 1)
         return null;
@@ -207,10 +207,70 @@ unittest
     
     import deimos.openssl.evp : EVP_CIPHER_CTX_new, EVP_CIPHER_CTX_free; 
     auto ctx = EVP_CIPHER_CTX_new;
-    auto encryptedMessage = encrypt_packet(message, aad, key, iv, cipherBuffer,
+    auto encryptedMessage = aeadEncrypt(message, aad, key, iv, cipherBuffer,
                                                                         ctx);
-    auto decryptedMessage = decrypt_packet(encryptedMessage, aad, key, iv,
+    auto decryptedMessage = aeadDecrypt(encryptedMessage, aad, key, iv,
                                             decryptedBuffer, ctx);
     assert(message == decryptedMessage);
     EVP_CIPHER_CTX_free(ctx);
+}
+
+ubyte[] aesEncrypt(ubyte[] plaintext, ubyte[] ciphertext,
+                    ubyte[] key, EVP_CIPHER_CTX* ctx,
+                    const(EVP_CIPHER)* aes = EVP_aes_128_ecb)
+out (result) {
+    if (result == null)
+        ERR_print_errors_fp(stderr);
+} do {
+    import deimos.openssl.evp : EVP_EncryptInit_ex, EVP_EncryptUpdate, EVP_EncryptFinal_ex;
+    int len, ciphertext_len;
+    if (EVP_EncryptInit_ex(ctx, aes, null, key.ptr, null) < 1)
+        return null;
+    if (EVP_EncryptUpdate(ctx, ciphertext.ptr, &len, plaintext.ptr,
+                                            cast(int) plaintext.length) < 1)
+        return null;
+    if (EVP_EncryptFinal_ex(ctx, ciphertext[len..$].ptr, &len) != 1)
+        return null;
+    ciphertext_len += len;
+
+    return ciphertext[0..ciphertext_len];
+}
+
+unittest
+{
+    import deimos.openssl.evp : EVP_CIPHER_CTX_new, EVP_CIPHER_CTX_free; 
+    import std.conv : hexString;
+    import std.digest : toHexString, LetterCase;
+
+    auto ctx = EVP_CIPHER_CTX_new;
+
+    //numerical example taken from RFC9001 A.2
+    auto sample = cast(ubyte[]) hexString!"d1b1c98dd7689fb8ec11d242b123dc9b";
+    auto key = cast(ubyte[]) hexString!"9f50449e04a0e810283a1e9933adedd2";
+    ubyte[32] mask;
+    aesEncrypt(sample, mask, key, ctx);
+    assert((mask[0..5]).toHexString!(LetterCase.lower) == "437b9aec36");
+    
+    EVP_CIPHER_CTX_free(ctx);
+}
+
+ubyte[] aesDecrypt(ubyte[] ciphertext, ubyte[] plaintext, ubyte[] key,
+                    EVP_CIPHER_CTX* ctx,
+                    const(EVP_CIPHER)* aes = EVP_aes_128_ecb)
+out (result) {
+    if (result == null)
+        ERR_print_errors_fp(stderr);
+} do {
+    import deimos.openssl.evp : EVP_DecryptInit_ex, EVP_DecryptUpdate, EVP_DecryptFinal_ex;
+    int len, plaintext_len;
+    if (EVP_DecryptInit_ex(ctx, aes, null, key.ptr, null) < 1)
+        return null;
+    if (EVP_DecryptUpdate(ctx, plaintext.ptr, &len, ciphertext.ptr,
+                                            cast(int) ciphertext.length) < 1)
+        return null;
+    if (EVP_DecryptFinal_ex(ctx, plaintext[len..$].ptr, &len) != 1)
+        return null;
+    plaintext_len += len;
+
+    return plaintext[0..plaintext_len];
 }
