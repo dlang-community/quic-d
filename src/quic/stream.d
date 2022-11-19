@@ -1,11 +1,11 @@
 module stream;
-import quic.frame : StreamFrame;
+import quic.frame : StreamFrame, VarInt;
 
 enum QuicStreamDirection { unidirectional, bidirectional }
 
 enum QuicStreamOrigin { server, client }
 
-enum QuicStreamFrameType {hasLength = 2, hasOffset = 4}
+enum QuicStreamFrameType { hasLength = 2, hasOffset = 4 }
 
 struct Stream(type)
 {
@@ -51,6 +51,9 @@ struct Stream(type)
 import std.range.primitives;                           
 import std.traits : isInstanceOf;
 
+alias StreamFrameWithOffset = StreamFrame!(cast(VarInt)
+	(QuicStreamFrameType.hasLength + QuicStreamFrameType.hasOffset));
+
 struct StreamFrameBuffer(bufferType)
 {
     bufferType buffer;
@@ -71,7 +74,7 @@ struct StreamFrameBuffer(bufferType)
         import std.array : Appender;
         Appender!(ubyte[]) wLocal; 
         
-        void write(StreamFrame frame)
+        void write(StreamFrameWithOffset frame)
         {
             assert(frame.offset < lastOffset,
                                     "Out-of-order frames are not supported.");
@@ -87,7 +90,7 @@ struct StreamFrameBuffer(bufferType)
         void write(ubyte[] frame, VarInt offset)
         {
             //it is assumed that the frame was checked before calling write
-            stats ~= StreamFrameStats(frame.length, frame.offset);
+            stats ~= StreamFrameStats(frame.length, offset);
             buffer ~= frame;
         }
         
@@ -104,7 +107,7 @@ struct StreamFrameBuffer(bufferType)
                 return read();
 
             ulong lenUntilFrame; uint i;
-            for(i = 0; i<stats.length; i++)
+            for(i = 0; i < stats.length; i++)
             {
                 if(stats.streamOffset == offset)
                     break;

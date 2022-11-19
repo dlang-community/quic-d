@@ -39,15 +39,15 @@ struct CryptoFrame
     @VarIntLength ubyte[] cryptoData;
 }
 
-struct StreamFrame(VarInt type)
+struct StreamFrame(VarInt frameType)
 {
     VarInt type;
     VarInt streamID;
 
-    static if((type & 0x4) == 1)
+    static if((frameType & 0x4) == 1)
         mixin("VarInt offset;");
 
-    static if((type & 0x2) == 1)
+    static if((frameType & 0x2) == 1)
         mixin("@VarIntLength ubyte[] streamData");
     else
         mixin("ubyte[] streamData");
