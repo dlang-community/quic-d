@@ -215,7 +215,7 @@ unittest
     EVP_CIPHER_CTX_free(ctx);
 }
 
-ubyte[] aesEncrypt(ubyte[] plaintext, ubyte[] ciphertext,
+ubyte[] ecbEncrypt(ubyte[] plaintext, ubyte[] ciphertext,
                     ubyte[] key, EVP_CIPHER_CTX* ctx,
                     const(EVP_CIPHER)* aes = EVP_aes_128_ecb)
 out (result) {
@@ -248,13 +248,13 @@ unittest
     auto sample = cast(ubyte[]) hexString!"d1b1c98dd7689fb8ec11d242b123dc9b";
     auto key = cast(ubyte[]) hexString!"9f50449e04a0e810283a1e9933adedd2";
     ubyte[32] mask;
-    aesEncrypt(sample, mask, key, ctx);
+    ecbEncrypt(sample, mask, key, ctx);
     assert((mask[0..5]).toHexString!(LetterCase.lower) == "437b9aec36");
     
     EVP_CIPHER_CTX_free(ctx);
 }
 
-ubyte[] aesDecrypt(ubyte[] ciphertext, ubyte[] plaintext, ubyte[] key,
+ubyte[] ecbDecrypt(ubyte[] ciphertext, ubyte[] plaintext, ubyte[] key,
                     EVP_CIPHER_CTX* ctx,
                     const(EVP_CIPHER)* aes = EVP_aes_128_ecb)
 out (result) {
@@ -273,4 +273,78 @@ out (result) {
     plaintext_len += len;
 
     return plaintext[0..plaintext_len];
+}
+
+int generateKeyPair(out ubyte[] privateKey, out ubyte[] publicKey)
+out (result) {
+    if (result < 1)
+        ERR_print_errors_fp(stderr);
+} do {
+    import deimos.openssl.evp : EVP_PKEY_CTX, EVP_PKEY_X25519,
+                                EVP_PKEY_derive, EVP_PKEY_derive_init,
+                                EVP_PKEY_HKDF, EVP_PKEY_CTX_new_id,
+                                EVP_PKEY_keygen, EVP_PKEY_keygen_init,
+                                EVP_PKEY_CTX_free,
+                                EVP_PKEY_get_raw_private_key,
+                                EVP_PKEY_get_raw_public_key;
+    EVP_PKEY* pkey = null;
+    auto pctx = EVP_PKEY_CTX_new_id(EVP_PKEY_X25519, null);
+
+    EVP_PKEY_keygen_init(pctx);
+    EVP_PKEY_keygen(pctx, &pkey);
+
+    ulong len = 32;
+
+    if (EVP_PKEY_get_raw_private_key(pkey, privateKey.ptr, &len) < 1)
+        return -1;
+    if (EVP_PKEY_get_raw_public_key(pkey, publicKey.ptr, &len) < 1)
+        return -1;
+
+    EVP_PKEY_CTX_free(pctx);
+    return 1;
+}
+
+import deimos.openssl.evp : EVP_PKEY;
+
+int generateSharedKey(ubyte[] publicPeerKey, EVP_PKEY* pkey,
+                                                    out ubyte[] sharedKey)
+out (result) {
+    if (result < 1)
+        ERR_print_errors_fp(stderr);
+} do {
+    ulong len = 32;
+    import deimos.openssl.evp : EVP_PKEY_CTX_new, EVP_PKEY_derive_set_peer,
+                                EVP_PKEY_derive, EVP_PKEY_CTX_free,
+                                EVP_PKEY_new_raw_private_key;
+
+    import deimos.openssl.ssl : NID_X25519;
+
+    auto pctx = EVP_PKEY_CTX_new(pkey, null);
+    if (EVP_PKEY_derive_set_peer(pctx, EVP_PKEY_new_raw_private_key(NID_X25519, null,
+                                   publicPeerKey.ptr, len)) < 1)
+        return -1;
+    if (EVP_PKEY_derive(pctx, sharedKey.ptr, &len) < 1)
+        return -1;
+    EVP_PKEY_CTX_free(pctx);
+    return 1;
+}
+
+int digest(ubyte[] message, ubyte[] digest, const(EVP_MD)* md = EVP_sha256)
+out (result) {
+    if (result < 1)
+        ERR_print_errors_fp(stderr);
+} do {
+    import deimos.openssl.evp : EVP_DigestInit, EVP_DigestUpdate,
+                                EVP_DigestFinal_ex, EVP_MD_CTX_new,
+                                EVP_MD_CTX_destroy;
+    auto ctx = EVP_MD_CTX_new();
+    uint sha256digestLen;
+    if (EVP_DigestInit(ctx, md) < 1)
+        return -1;
+    if (EVP_DigestUpdate(ctx, message.ptr, message.length) < 1)
+        return -1;
+    if (EVP_DigestFinal_ex(ctx, digest.ptr, &sha256digestLen) < 1)
+        return -1;
+    EVP_MD_CTX_destroy(ctx);
+    return 1;
 }
