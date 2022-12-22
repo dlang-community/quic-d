@@ -348,3 +348,37 @@ out (result) {
     EVP_MD_CTX_destroy(ctx);
     return 1;
 }
+
+bool verifyCertficate(ubyte[] handshakeHash, ubyte[] signature, EVP_PKEY* publicKey,
+                        const(EVP_MD)* md = EVP_sha256)
+{
+    // https://www.rfc-editor.org/rfc/rfc8446.html#page-69
+    import deimos.openssl.evp : EVP_MD_CTX_create, EVP_DigestVerifyInit,
+                                EVP_DigestVerifyUpdate, EVP_DigestVerifyFinal,
+                                EVP_MD_CTX_destroy, EVP_MD_CTX;
+
+    ubyte[] toSign;
+    import std.array : replicate;
+    auto padding = replicate(" ", 64);
+    toSign ~= padding;
+    toSign ~= "TLS 1.3, server CertificateVerify";
+    toSign ~= 0x0;
+    toSign ~= handshakeHash;
+
+    EVP_MD_CTX *mdctx;
+
+    mdctx = EVP_MD_CTX_create();
+
+    EVP_DigestVerifyInit(mdctx, null, md, null, publicKey);
+
+    EVP_DigestVerifyUpdate(mdctx, toSign.ptr, toSign.length);
+
+    bool isValid;
+    if (EVP_DigestVerifyFinal(mdctx, signature.ptr, signature.length) == 1)
+        isValid = true;
+    else
+        isValid = false;
+
+    EVP_MD_CTX_destroy(mdctx);
+    return isValid;
+}
