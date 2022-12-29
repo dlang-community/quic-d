@@ -275,7 +275,7 @@ out (result) {
     return plaintext[0..plaintext_len];
 }
 
-int generateKeyPair(out ubyte[] privateKey, out ubyte[] publicKey)
+int generateKeyPair(ubyte[] privateKey, ubyte[] publicKey)
 out (result) {
     if (result < 1)
         ERR_print_errors_fp(stderr);
@@ -423,5 +423,12 @@ unittest
     generateSharedKey(clientPublicKey, serverPrivateKey, sharedServerKey);
 
     //Both peers should have the same shared key for future packet encryption
+    assert(sharedServerKey == sharedClientKey);
+    assert(sharedServerKey == Base64.decode("30opG6oet8+mk0sptHS6rSaX4p8fkg3Md8igoIhEdiQ="));
+
+    generateKeyPair(clientPrivateKey, clientPublicKey);
+
+    generateSharedKey(serverPublicKey, clientPrivateKey, sharedClientKey);
+    generateSharedKey(clientPublicKey, serverPrivateKey, sharedServerKey);
     assert(sharedServerKey == sharedClientKey);
 }
