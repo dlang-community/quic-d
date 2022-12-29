@@ -306,23 +306,41 @@ out (result) {
 
 import deimos.openssl.evp : EVP_PKEY;
 
-int generateSharedKey(ubyte[] publicPeerKey, EVP_PKEY* pkey,
-                                                    out ubyte[] sharedKey)
+int generateSharedKey(Tpub, Tpriv)(Tpub publicPeerKey, Tpriv privateKey,
+                                                    ubyte[] sharedKey)
 out (result) {
     if (result < 1)
         ERR_print_errors_fp(stderr);
 } do {
     ulong len = 32;
     import deimos.openssl.evp : EVP_PKEY_CTX_new, EVP_PKEY_derive_set_peer,
-                                EVP_PKEY_derive, EVP_PKEY_CTX_free,
-                                EVP_PKEY_new_raw_private_key;
+                                EVP_PKEY_derive, EVP_PKEY_derive_init,
+                                EVP_PKEY_CTX_free,
+                                EVP_PKEY_new_raw_private_key, EVP_PKEY_X25519,
+                                EVP_PKEY_new_raw_public_key;
+    static if (is(Tpriv == ubyte[]))
+        auto pctx = EVP_PKEY_CTX_new(EVP_PKEY_new_raw_private_key(EVP_PKEY_X25519,
+                                            null, privateKey.ptr, len), null);
+    else static if (is (Tpriv == EVP_PKEY*))
+        auto pctx = EVP_PKEY_CTX_new(privateKey, null);
 
-    import deimos.openssl.ssl : NID_X25519;
-
-    auto pctx = EVP_PKEY_CTX_new(pkey, null);
-    if (EVP_PKEY_derive_set_peer(pctx, EVP_PKEY_new_raw_private_key(NID_X25519, null,
-                                   publicPeerKey.ptr, len)) < 1)
+    if (EVP_PKEY_derive_init(pctx) < 1)
         return -1;
+
+    static if (is(Tpub == ubyte[]))
+    {
+        if (EVP_PKEY_derive_set_peer(pctx,
+            EVP_PKEY_new_raw_public_key(EVP_PKEY_X25519, null, publicPeerKey.ptr,
+                                                                len)) < 1)
+            return -1;
+    }
+
+    else static if (is(Tpub == EVP_PKEY*))
+    {
+        if (EVP_PKEY_derive_set_peer(pctx, publicPeerKey) < 1)
+            return -1;
+    }
+
     if (EVP_PKEY_derive(pctx, sharedKey.ptr, &len) < 1)
         return -1;
     EVP_PKEY_CTX_free(pctx);
@@ -381,4 +399,29 @@ bool verifyCertficate(ubyte[] handshakeHash, ubyte[] signature, EVP_PKEY* public
 
     EVP_MD_CTX_destroy(mdctx);
     return isValid;
+}
+
+unittest
+{
+    ubyte[32] publicKey;    
+    ubyte[32] privateKey;
+    ubyte[32] sharedServerKey;
+    ubyte[32] sharedClientKey;
+
+    import std.base64;
+    //Numerical values from : quic.xargs.com
+
+    //client side
+    ubyte[] clientPrivateKey = Base64.decode("ICEiIyQlJicoKSorLC0uLzAxMjM0NTY3ODk6Ozw9Pj8=");
+    ubyte[] serverPublicKey = Base64.decode("n9etbc/0KY3T+W1bGyr5EKBTWxSI1/j6uzSamCiAthU=");
+
+    //server side
+    ubyte[] clientPublicKey = Base64.decode("NYBy1jZYgNGu6jKa35EhODhR7SGijjt16WXQ0s0WYlQ=");
+    ubyte[] serverPrivateKey = Base64.decode("kJGSk5SVlpeYmZqbnJ2en6ChoqOkpaanqKmqq6ytrq8=");
+
+    generateSharedKey(serverPublicKey, clientPrivateKey, sharedClientKey);
+    generateSharedKey(clientPublicKey, serverPrivateKey, sharedServerKey);
+
+    //Both peers should have the same shared key for future packet encryption
+    assert(sharedServerKey == sharedClientKey);
 }
