@@ -48,7 +48,10 @@ struct Session
             {
                 ulong tlsBufIndex;
                 auto reader = QuicReader!CryptoFrame(packetReader.packetPayload, tlsBufIndex);
-                // TODO: message handler for TLS
+                reader.offset; //TODO: handle crypto frames split into multiple
+                               //offsets
+                auto frameLength = reader.length;
+                tls.handleMessage(reader.cryptoData);
             }
         }
     }
@@ -110,6 +113,34 @@ struct TLSContext
             keyFrame.publicKey = publicKey;
             writer.getBytes(helloFrame.extensionData, keyFrame);
             writer.getBytes(buffer, helloFrame);
+        }
+    }
+    
+    void handleMessage(ubyte[] message)
+    {
+        if (state == clientExpectServerHello)
+        {
+            ulong tlsFrameIndex;
+            auto reader = QuicReader!(serverHello)(message, tlsFrameIndex);
+            if (readBigEndianField(message, tlsFrameIndex, 2) == TlsFrameTypes.serverHello)
+            {
+                reader.legacy_version;
+                reader.random;
+                reader.legacy_session_id;
+                handleServerHello(reader.extensionData);
+            }
+            else
+                assert(0, "Wrong message received");
+        }
+    }
+
+    void handleServerHello(ubyte[] message)
+    {
+        ulong extensionIndex;
+        if (readBigEndianField(message, extensionIndex, 2) ==
+                                                TlsExtensionTypes.keyShare)
+        {
+            generateSharedKey(publicPeerKey, privateKey, sharedKey);
         }
     }
 }
