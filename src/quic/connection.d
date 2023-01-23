@@ -46,14 +46,14 @@ struct Session
         {
             ulong bufIndex;
             auto packetReader = QuicReader!InitialPacket(data, bufIndex);
-            if (packetReader.packetPayload[bufIndex] & 0x6) //crypto frame
+            auto packetPayload = packetReader.read!"packetPayload";
+            if (packetPayload[0] & 0x6) //crypto frame
             {
                 ulong tlsBufIndex;
-                auto reader = QuicReader!CryptoFrame(packetReader.packetPayload, tlsBufIndex);
-                reader.offset; //TODO: handle crypto frames split into multiple
-                               //offsets
-                auto frameLength = reader.length;
-                tls.handleMessage(reader.cryptoData);
+                auto reader = QuicReader!CryptoFrame(packetPayload, tlsBufIndex);
+                //TODO: handle crypto frames split into multiple offsets
+                auto frameOffset = reader.read!"offset";
+                tls.handleMessage(reader.read!"cryptoData");
             }
         }
     }
@@ -126,10 +126,10 @@ struct TLSContext
             auto reader = QuicReader!ServerHello(message, tlsFrameIndex);
             if (readBigEndianField(message, tlsFrameIndex, 2) == TlsFrameTypes.serverHello)
             {
-                reader.legacy_version;
-                reader.random;
-                reader.legacy_session_id;
-                handleServerHello(reader.extensionData);
+                reader.read!"legacy_version";
+                reader.read!"random";
+                reader.read!"legacy_compression_method";
+                handleServerHello(reader.read!"extensionData");
             }
             else
                 assert(0, "Wrong message received");

@@ -17,6 +17,8 @@ struct QuicReader(FrameType)
         this.bufIndex = bufIndex;
     }
 
+    alias read = opDispatch;
+
     auto opDispatch(string name)() {
             alias FieldType = typeof(__traits(getMember, FrameType, name));
 
