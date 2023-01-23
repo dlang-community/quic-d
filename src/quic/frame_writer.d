@@ -41,6 +41,12 @@ struct QuicWriter
                 writeBigEndianField!(typeof(field).sizeof)(wLocal, field);
             }
 
+            else static if(is(typeof(field) == ubyte[n], size_t n))
+            {
+                // implicit established length
+                wLocal ~= field[];
+            }
+
             else static if (attributes.length == 1)
             {
 
@@ -54,12 +60,6 @@ struct QuicWriter
                 {
                     writeBigEndianField!(getFixedLength!(attributes[0]))(wLocal,
                                                                 field.length);
-                    wLocal ~= field;
-                }
-
-                else static if (hasEstablishedLength!(attributes[0]) &&
-                                                        attributes.length > 0)
-                {
                     wLocal ~= field;
                 }
 

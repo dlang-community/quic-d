@@ -52,7 +52,7 @@ alias TlsData = ubyte[2];
 @TlsFrame!(TlsFrameTypes.clientHello) @FixedLength!3 struct ClientHello
 {
     uint legacy_version;
-    @EstablishedLength!32 ubyte[32] random;
+    ubyte[32] random;
     //not used by QUIC
     ubyte[] legacy_session_id = [0];
     //not used by QUIC
@@ -65,7 +65,7 @@ alias TlsData = ubyte[2];
 {
     ubyte frameType;
     uint legacy_version;
-    @EstablishedLength!32 ubyte[32] random;
+    ubyte[32] random;
     //not used by QUIC
     @FixedLength!1 ubyte[] legacy_compression_method = [0];
     @FixedLength!2 ubyte[] extensionData;

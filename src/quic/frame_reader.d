@@ -75,11 +75,10 @@ struct QuicReader(FrameType)
                 }
             }
 
-            else static if(hasEstablishedLength!(attributes[0]))
+            else static if (is(FieldType == ubyte[len], size_t len))
             {
-                    auto len = getEstablishedLength!(attributes[0]);
-                    bufIndex += len;
-                    return networkStream[bufIndex-len..bufIndex];
+                bufIndex += len;
+                return networkStream[bufIndex-len..bufIndex];
             }
 
             else static assert(0, errorPrefix!() ~ " is not supported!");
