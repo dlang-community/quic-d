@@ -110,8 +110,8 @@ struct TLSContext
     {
         if (state == TlsStates.clientHandshakeStart)
         {
-            clientHello helloFrame;
-            keyShare keyFrame;
+            ClientHello helloFrame;
+            KeyShare keyFrame;
             keyFrame.publicKey = publicKey;
             writer.getBytes(helloFrame.extensionData, keyFrame);
             writer.getBytes(buffer, helloFrame);
@@ -123,7 +123,7 @@ struct TLSContext
         if (state == TlsStates.clientExpectServerHello)
         {
             ulong tlsFrameIndex;
-            auto reader = QuicReader!(serverHello)(message, tlsFrameIndex);
+            auto reader = QuicReader!ServerHello(message, tlsFrameIndex);
             if (readBigEndianField(message, tlsFrameIndex, 2) == TlsFrameTypes.serverHello)
             {
                 reader.legacy_version;
@@ -142,7 +142,7 @@ struct TLSContext
         if (readBigEndianField(message, extensionIndex, 2) ==
                                                 TlsExtensionTypes.keyShare)
         {
-            auto reader = QuicReader!(keyShare)(message, extensionIndex);
+            auto reader = QuicReader!KeyShare(message, extensionIndex);
             reader.groups;
             generateSharedKey(reader.publicKey[], privateKey[], sharedKey);
         }
