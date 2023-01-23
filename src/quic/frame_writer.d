@@ -105,7 +105,7 @@ unittest
     import std.conv : hexString;
     import std.digest : toHexString, LetterCase;
 
-    QuicWriter writer;            
+    QuicWriter writer;
     InitialPacket packet;
     packet.headerBits = 0xc0;
     packet.destinationConnectionID = cast(ubyte[]) hexString!"0001020304050607";
@@ -114,5 +114,5 @@ unittest
     LocalAppender buffer;
     writer.getBytes(buffer, packet);
     assert(buffer[].toHexString!(LetterCase.lower) ==
-                                "c00000000108000102030405060705635f63696400");
+                                "c00000000108000102030405060705635f6369640000");
 }
