@@ -44,7 +44,7 @@ struct Session
         {
             ulong bufIndex;
             auto packetReader = QuicReader!InitialPacket(data, bufIndex);
-            if (packetReader.packetPayload[0] & 0x6) //crypto frame
+            if (packetReader.packetPayload[bufIndex] & 0x6) //crypto frame
             {
                 ulong tlsBufIndex;
                 auto reader = QuicReader!CryptoFrame(packetReader.packetPayload, tlsBufIndex);
@@ -118,7 +118,7 @@ struct TLSContext
     
     void handleMessage(ubyte[] message)
     {
-        if (state == clientExpectServerHello)
+        if (state == TlsStates.clientExpectServerHello)
         {
             ulong tlsFrameIndex;
             auto reader = QuicReader!(serverHello)(message, tlsFrameIndex);
@@ -140,7 +140,9 @@ struct TLSContext
         if (readBigEndianField(message, extensionIndex, 2) ==
                                                 TlsExtensionTypes.keyShare)
         {
-            generateSharedKey(publicPeerKey, privateKey, sharedKey);
+            auto reader = QuicReader!(keyShare)(message, extensionIndex);
+            reader.groups;
+            generateSharedKey(reader.publicKey, privateKey, sharedKey);
         }
     }
 }
