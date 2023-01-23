@@ -68,10 +68,10 @@ struct QuicReader(FrameType)
                     return networkStream[bufIndex-len..bufIndex];
                 }
 
-                static if(hasFixedLengh!(attributes[0]))
+                static if(hasFixedLength!(attributes[0]))
                 {
                     auto lenOfLength = getFixedLength!(attributes[0]);
-                    auto len = readBigEndianField(networkStream, bufIndex, len);
+                    auto len = readBigEndianField(networkStream, bufIndex, lenOfLength);
                     bufIndex += len;
                     return networkStream[bufIndex-len..bufIndex];
                 }
