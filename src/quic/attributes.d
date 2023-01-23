@@ -1,10 +1,9 @@
 module quic.attributes;
 
-struct VarIntLength {};
-struct FixedLength(uint len) {};
-struct EstablishedLength(uint len) {};
-struct TlsFrame(int type) {};
-struct TlsExtension(int type) {};
+struct VarIntLength {}
+struct FixedLength(uint len) {}
+struct TlsFrame(int type) {}
+struct TlsExtension(int type) {}
 
 template getFixedLength(T)
 {
@@ -12,7 +11,7 @@ template getFixedLength(T)
         enum getFixedLength = len;
 }
 
-enum hasFixedLength(alias T) = is(T) && is(T == FixedLength!len, uint len);
+enum hasFixedLength(T) = is(T == FixedLength!len, uint len);
 
 template getEstablishedLength(T)
 {
@@ -28,7 +27,7 @@ template getTlsFrameType(T)
         enum getTlsFrameType = type;
 }
 
-enum isTlsFrame(alias T) = is(T) && is(T == TlsFrame!type, int type);
+enum isTlsFrame(T) = is(T == TlsFrame!type, int type);
 
 template getTlsExtensionType(T)
 {
@@ -36,4 +35,4 @@ template getTlsExtensionType(T)
         enum getTlsExtensionType = type;
 }
 
-enum isTlsExtension(alias T) = is(T) && is(T == TlsFrame!type, int type);
+enum isTlsExtension(T) = is(T == TlsExtension!type, int type);
