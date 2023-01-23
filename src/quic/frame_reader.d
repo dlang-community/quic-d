@@ -20,16 +20,25 @@ struct QuicReader(FrameType)
     auto opDispatch(string name)() {
             alias FieldType = typeof(__traits(getMember, FrameType, name));
 
+            alias attributes = __traits(getAttributes, mixin(FrameType.stringof, '.', name));
+
+            enum errorPrefix() = "Field "
+                ~ FrameType.stringof ~ '.' ~ name
+                ~ " of type " ~ FieldType.stringof
+                ~ " with attributes " ~ attributes.stringof;
+
             FieldType value;
 
             static if (is(FieldType == VarInt))
             {
+                static assert(attributes.length == 0, errorPrefix!() ~ ": no attributes allowed");
                 decodeVarInt(value, networkStream, bufIndex);
                 return value;
             }
 
             else static if (is(FieldType == AckRange))
             {
+                static assert(attributes.length == 0, errorPrefix!() ~ ": no attributes allowed");
                 decodeVarInt(value.gap, networkStream, bufIndex);
                 decodeVarInt(value.rangeLength, networkStream, bufIndex);
                 return value;
@@ -37,6 +46,7 @@ struct QuicReader(FrameType)
 
             else static if ((is(FieldType == EcnCount)))
             {
+                static assert(attributes.length == 0, errorPrefix!() ~ ": no attributes allowed");
                 decodeVarInt(value.ect0Count, networkStream, bufIndex);
                 decodeVarInt(value.ect1Count, networkStream, bufIndex);
                 decodeVarInt(value.ecn_ceCount, networkStream, bufIndex);
@@ -45,8 +55,10 @@ struct QuicReader(FrameType)
 
             else static if (is(FieldType == ubyte[]))
             {
-                alias attributes = __traits(getAttributes, mixin(FrameType.stringof, '.', name)); 
-                static if(is(attributes == VarIntLength))
+                static assert(attributes.length == 1, errorPrefix
+                    ~ ": must have exactly one attribute @VarIntLength or @FixedLength!n");
+
+                static if(is(attributes[0] == VarIntLength))
                 {
                     VarInt len;
                     decodeVarInt(len, networkStream, bufIndex);
@@ -70,7 +82,7 @@ struct QuicReader(FrameType)
                     return networkStream[bufIndex-len..bufIndex];
             }
 
-            else assert(0, "Type is not supported");
+            else static assert(0, errorPrefix!() ~ " is not supported!");
         }
 }
 

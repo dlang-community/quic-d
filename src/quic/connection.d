@@ -144,7 +144,7 @@ struct TLSContext
         {
             auto reader = QuicReader!(keyShare)(message, extensionIndex);
             reader.groups;
-            generateSharedKey(reader.publicKey, privateKey, sharedKey);
+            generateSharedKey(reader.publicKey[], privateKey[], sharedKey);
         }
     }
 }

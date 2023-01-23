@@ -323,6 +323,8 @@ out (result) {
                                             null, privateKey.ptr, len), null);
     else static if (is (Tpriv == EVP_PKEY*))
         auto pctx = EVP_PKEY_CTX_new(privateKey, null);
+    else
+        static assert(false, "Invalid private key type: " ~ Tpriv.stringof);
 
     if (EVP_PKEY_derive_init(pctx) < 1)
         return -1;
