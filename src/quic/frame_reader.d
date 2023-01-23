@@ -7,6 +7,7 @@ import quic.attributes;
 struct QuicReader(FrameType)
 {
     import quic.decode : decodeVarInt;
+    import std.traits;
 
     ubyte[] networkStream;
     ulong bufIndex;
@@ -81,6 +82,11 @@ struct QuicReader(FrameType)
             {
                 bufIndex += len;
                 return networkStream[bufIndex-len..bufIndex];
+            }
+
+            else static if (isIntegral!FieldType)
+            {
+                return readBigEndianField(networkStream, bufIndex, FieldType.sizeof);
             }
 
             else static assert(0, errorPrefix!() ~ " is not supported!");
