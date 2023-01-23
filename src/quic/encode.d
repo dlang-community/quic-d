@@ -33,7 +33,7 @@ in {
     foreach (i, elem; bigEndianValue[$-len..$])
     {
         if (i == 0)
-            writer ~= elem | getVarIntBitMask(len);
+            writer ~= cast(ubyte)(elem | getVarIntBitMask(len));
         else
             writer ~= elem;
     }

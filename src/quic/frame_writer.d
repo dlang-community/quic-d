@@ -41,10 +41,10 @@ struct QuicWriter
                 writeBigEndianField!(typeof(field).sizeof)(wLocal, field);
             }
 
-            else static if (attributes.length > 0)
+            else static if (attributes.length == 1)
             {
 
-                static if(is(attributes == VarIntLength))
+                static if(is(attributes[0] == VarIntLength))
                 {
                     encodeVarInt(wLocal, field.length);
                     wLocal ~= field;
@@ -62,6 +62,8 @@ struct QuicWriter
                 {
                     wLocal ~= field;
                 }
+
+                else static assert(0, "Type/Attribute combination is not supported");
             }
 
             else static if(is(typeof(field) == ubyte[]))
@@ -69,7 +71,7 @@ struct QuicWriter
                 wLocal ~= field;
             }
 
-            else assert(0, "Type is not supported");
+            else static assert(0, "Type is not supported");
         }
        
         alias frameAttrs = __traits(getAttributes, F);
