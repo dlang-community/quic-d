@@ -46,7 +46,7 @@ mixin template BaseLongHeaderPacket()
 @VarIntLength struct ShortHeaderPacket(ulong len) //1-RTT packet
 {
     ubyte headerBits;
-    @EstablishedLength!(len) ubyte[len] destinationConnectionID;
+    ubyte[len] destinationConnectionID;
     ubyte[] packetPayload;
 }
 enum SampleOffset = 4;

@@ -13,14 +13,6 @@ template getFixedLength(T)
 
 enum hasFixedLength(T) = is(T == FixedLength!len, uint len);
 
-template getEstablishedLength(T)
-{
-    static if(is(T == EstablishedLength!len, uint len))
-        enum getEstablishedLength = len;
-}
-
-enum hasEstablishedLength(alias T) = is(T) && is(T == FixedLength!len, uint len);
-
 template getTlsFrameType(T)
 {
     static if(is(T == TlsFrame!type, int type))
