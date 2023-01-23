@@ -1,12 +1,12 @@
 module quic.frame;
 import quic.attributes;
 
-enum tlsFrameTypes {
-    ClientHello, ServerHello
+enum TlsFrameTypes {
+    clientHello, serverHello
 }
 
-enum tlsExtensionTypes {
-   SupportedGroups = 10, SupportedVersions = 43, KeyShare = 51 
+enum TlsExtensionTypes {
+   supportedGroups = 10, supportedVersions = 43, keyShare = 51 
 }
 
 alias VarInt = ulong;
@@ -49,7 +49,7 @@ struct HandshakeDone
 
 alias TlsData = ubyte[2];
 
-@TlsFrame!(tlsFrameTypes.ClientHello) @FixedLength!3 struct ClientHello
+@TlsFrame!(TlsFrameTypes.clientHello) @FixedLength!3 struct ClientHello
 {
     uint legacy_version;
     @EstablishedLength!32 ubyte[32] random;
@@ -61,7 +61,7 @@ alias TlsData = ubyte[2];
     @FixedLength!2 ubyte[] extensionData;
 }
 
-@TlsFrame!(tlsFrameTypes.ServerHello) @FixedLength!3 struct ServerHello
+@TlsFrame!(TlsFrameTypes.serverHello) @FixedLength!3 struct ServerHello
 {
     ubyte frameType;
     uint legacy_version;
@@ -73,18 +73,18 @@ alias TlsData = ubyte[2];
 
 //Extensions
 
-@TlsExtension!(tlsExtensionTypes.SupportedVersions) @FixedLength!2 struct SupportedVersions
+@TlsExtension!(TlsExtensionTypes.supportedVersions) @FixedLength!2 struct SupportedVersions
 {
     //QUIC should support TLS 1.3 by default (0x03 0x04)
     @FixedLength!2 ubyte[] tlsVersions = [0x3, 0x4];
 }
 
-@TlsExtension!(tlsExtensionTypes.SupportedGroups) @FixedLength!2 struct SupportedGroups
+@TlsExtension!(TlsExtensionTypes.supportedGroups) @FixedLength!2 struct SupportedGroups
 {   //assigned value for the "x25519" elliptic-curve
     @FixedLength!2 ubyte[] groups = [0x00, 0x1d];
 }
 
-@TlsExtension!(tlsExtensionTypes.KeyShare) @FixedLength!2 struct KeyShare
+@TlsExtension!(TlsExtensionTypes.keyShare) @FixedLength!2 struct KeyShare
 {
     @FixedLength!2 ubyte[] groups = [0x00, 0x1d];
     @FixedLength!2 ubyte[] publicKey;
