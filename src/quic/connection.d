@@ -1,3 +1,5 @@
+module quic.connection;
+
 import quic.frame_writer;
 import quic.frame_reader;
 import quic.packet;
